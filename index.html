@@ -1,225 +1,256 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>My Market Dashboard</title>
-<style>
-  *{box-sizing:border-box}
-  body{margin:0;font-family:Arial,Helvetica,sans-serif;background:#0b1220;color:#e8eef8}
-  .wrap{max-width:1200px;margin:auto;padding:18px}
-  header{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:18px}
-  h1{font-size:24px;margin:0}
-  .status{font-size:12px;color:#9fb0c8}
-  .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
-  .card{background:#121c2d;border:1px solid #22314a;border-radius:12px;padding:16px}
-  .name{font-size:13px;color:#9fb0c8;margin-bottom:10px}
-  .price{font-size:25px;font-weight:700}
-  .chg{margin-top:7px;font-weight:600}
-  .up{color:#39d98a}.down{color:#ff6b7a}
-  .section{margin:24px 0 10px;font-size:16px;font-weight:700}
-  .table{background:#121c2d;border:1px solid #22314a;border-radius:12px;overflow:hidden}
-  .row{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;padding:13px 16px;border-bottom:1px solid #22314a;align-items:center}
-  .row:last-child{border-bottom:0}
-  .head{font-size:12px;color:#8192aa;background:#0f1828}
-  .small{font-size:12px;color:#8192aa}
-  .note{margin-top:18px;color:#8192aa;font-size:12px;line-height:1.5}
-  @media(max-width:800px){.grid{grid-template-columns:repeat(2,1fr)}}
-  @media(max-width:500px){
-    .wrap{padding:12px}.grid{grid-template-columns:1fr 1fr;gap:8px}
-    .card{padding:12px}.price{font-size:20px}
-    .row{grid-template-columns:1.6fr 1fr 1fr 1fr;padding:11px 10px;font-size:13px}
-    h1{font-size:20px}
-  }
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Market Dashboard</title>
+  <style>
+    *{box-sizing:border-box}
+    body{margin:0;font-family:Arial,Helvetica,sans-serif;background:#0b1220;color:#e8eef8}
+    .wrap{max-width:1200px;margin:auto;padding:18px}
+    header{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:18px}
+    h1{font-size:24px;margin:0}
+    .status{font-size:12px;color:#9fb0c8}
+    .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+    .card{background:#121c2d;border:1px solid #22314a;border-radius:12px;padding:16px}
+    .name{font-size:13px;color:#9fb0c8;margin-bottom:10px}
+    .price{font-size:25px;font-weight:700}
+    .chg{margin-top:7px;font-weight:600}
+    .up{color:#39d98a}.down{color:#ff6b7a}
+    .section{margin:24px 0 10px;font-size:16px;font-weight:700}
+    .table{background:#121c2d;border:1px solid #22314a;border-radius:12px;overflow:hidden}
+    .row{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;padding:13px 16px;border-bottom:1px solid #22314a;align-items:center}
+    .row:last-child{border-bottom:0}
+    .head{font-size:12px;color:#8192aa;background:#0f1828}
+    .small{font-size:12px;color:#8192aa}
+    .note{margin-top:18px;color:#8192aa;font-size:12px;line-height:1.5}
+    @media(max-width:800px){.grid{grid-template-columns:repeat(2,1fr)}}
+    @media(max-width:500px){
+      .wrap{padding:12px}.grid{grid-template-columns:1fr 1fr;gap:8px}
+      .card{padding:12px}.price{font-size:20px}
+      .row{grid-template-columns:1.6fr 1fr 1fr 1fr;padding:11px 10px;font-size:13px}
+      h1{font-size:20px}
+    }
+  </style>
 </head>
 <body>
-<div class="wrap">
-  <header>
-    <div>
-      <h1>📊 My Market Dashboard</h1>
-      <div class="status" id="sourceStatus">Live data • connecting…</div>
+  <div class="wrap">
+    <header>
+      <div>
+        <h1>📊 My Market Dashboard</h1>
+        <div class="status" id="sourceStatus">Live data • connecting…</div>
+      </div>
+      <div class="status">Auto refresh: <span id="timer">10</span>s</div>
+    </header>
+
+    <div class="grid" id="cards"></div>
+
+    <div class="section">🇮🇳 Indian Markets</div>
+    <div class="table" id="india"></div>
+
+    <div class="section">📈 My Watchlist / Portfolio</div>
+    <div class="table" id="portfolio"></div>
+
+    <div class="note">
+      This dashboard uses public market quote endpoints when available and falls back to simulated values if a feed is unavailable.
+      For production, replace the demo data source with a licensed market-data API and add secure backend proxying for live streams.
     </div>
-    <div class="status">Auto refresh: <span id="timer">10</span>s</div>
-  </header>
-
-  <div class="grid" id="cards"></div>
-
-  <div class="section">🇮🇳 Indian Markets</div>
-  <div class="table" id="india"></div>
-
-  <div class="section">📈 My Watchlist / Portfolio</div>
-  <div class="table" id="portfolio"></div>
-
-  <div class="note">
-    This dashboard uses public market quote endpoints when available and falls back to simulated values if a feed is unavailable.
-    For production, replace the demo data source with a licensed market-data API and add secure backend proxying for live streams.
   </div>
-</div>
 
-<script>
-const markets = [
-  { label: "Dow Futures", symbol: "^DJI", value: 46850, change: 0.32 },
-  { label: "Nasdaq Futures", symbol: "^IXIC", value: 24780, change: 0.48 },
-  { label: "DAX", symbol: "^GDAXI", value: 24180, change: 0.51 },
-  { label: "US 10Y Yield", symbol: "^TNX", value: 4.12, change: -0.03 },
-  { label: "Gold", symbol: "GC=F", value: 3860, change: 0.45 },
-  { label: "Brent Crude", symbol: "BZ=F", value: 67.20, change: -0.28 },
-  { label: "DXY", symbol: "DX=F", value: 98.40, change: 0.11 },
-  { label: "Copper", symbol: "HG=F", value: 4.72, change: 0.36 }
-];
+  <script>
+    const FINNHUB_API_KEY = "YOUR_FINNHUB_API_KEY";
 
-const india = [
-  { label: "NIFTY 50", symbol: "^NSEI", value: 26000, change: 0.40 },
-  { label: "BANK NIFTY", symbol: "^NSEBANK", value: 59000, change: 0.65 },
-  { label: "SENSEX", symbol: "^BSESN", value: 85000, change: 0.32 },
-  { label: "INDIA VIX", symbol: "^VIX", value: 13.8, change: -1.20 }
-];
+    const markets = [
+      { label: "Dow Futures", symbol: "^DJI", value: 46850, change: 0.32 },
+      { label: "Nasdaq Futures", symbol: "^IXIC", value: 24780, change: 0.48 },
+      { label: "DAX", symbol: "^GDAXI", value: 24180, change: 0.51 },
+      { label: "US 10Y Yield", symbol: "^TNX", value: 4.12, change: -0.03 },
+      { label: "Gold", symbol: "GC=F", value: 3860, change: 0.45 },
+      { label: "Brent Crude", symbol: "BZ=F", value: 67.20, change: -0.28 },
+      { label: "DXY", symbol: "DX=F", value: 98.40, change: 0.11 },
+      { label: "Copper", symbol: "HG=F", value: 4.72, change: 0.36 }
+    ];
 
-const portfolio = [
-  { label: "Reliance", symbol: "RELIANCE.NS", qty: 15, avg: 2850, price: 0, change: 0 },
-  { label: "TCS", symbol: "TCS.NS", qty: 12, avg: 4100, price: 0, change: 0 },
-  { label: "HDFCBANK", symbol: "HDFCBANK.NS", qty: 20, avg: 1650, price: 0, change: 0 },
-  { label: "INFY", symbol: "INFY.NS", qty: 18, avg: 1540, price: 0, change: 0 }
-];
+    const india = [
+      { label: "NIFTY 50", symbol: "^NSEI", value: 26000, change: 0.40 },
+      { label: "BANK NIFTY", symbol: "^NSEBANK", value: 59000, change: 0.65 },
+      { label: "SENSEX", symbol: "^BSESN", value: 85000, change: 0.32 },
+      { label: "INDIA VIX", symbol: "^VIX", value: 13.8, change: -1.20 }
+    ];
 
-let liveMode = false;
-let timer = 10;
+    const portfolio = [
+      { label: "Reliance", symbol: "RELIANCE.NS", qty: 15, avg: 2850, price: 0, change: 0 },
+      { label: "TCS", symbol: "TCS.NS", qty: 12, avg: 4100, price: 0, change: 0 },
+      { label: "HDFCBANK", symbol: "HDFCBANK.NS", qty: 20, avg: 1650, price: 0, change: 0 },
+      { label: "INFY", symbol: "INFY.NS", qty: 18, avg: 1540, price: 0, change: 0 }
+    ];
 
-function fmtn(n){
-  if (n === null || n === undefined || Number.isNaN(n)) return "—";
-  if (n < 10) return Number(n).toFixed(2);
-  return Number(n).toLocaleString("en-IN", { maximumFractionDigits: 2 });
-}
-function cls(x){ return x >= 0 ? "up" : "down"; }
-function sign(x){ return x >= 0 ? "+" : ""; }
+    let liveMode = false;
+    let timer = 10;
 
-function simulateMiniMove(){
-  markets.forEach(item => {
-    const move = (Math.random() - 0.5) * 0.08;
-    item.value *= 1 + move / 100;
-    item.change += move;
-  });
-
-  india.forEach(item => {
-    const move = (Math.random() - 0.5) * 0.12;
-    item.value *= 1 + move / 100;
-    item.change += move;
-  });
-
-  portfolio.forEach(item => {
-    if (item.price > 0) {
-      const move = (Math.random() - 0.5) * 0.8;
-      item.change += move;
+    function fmtn(n){
+      if (n === null || n === undefined || Number.isNaN(n)) return "—";
+      if (n < 10) return Number(n).toFixed(2);
+      return Number(n).toLocaleString("en-IN", { maximumFractionDigits: 2 });
     }
-  });
-}
+    function cls(x){ return x >= 0 ? "up" : "down"; }
+    function sign(x){ return x >= 0 ? "+" : ""; }
 
-function render(){
-  document.getElementById("cards").innerHTML = markets.map(m => `
-    <div class="card">
-      <div class="name">${m.label}</div>
-      <div class="price">${fmtn(m.value)}</div>
-      <div class="chg ${cls(m.change)}">${sign(m.change)}${Number(m.change).toFixed(2)}%</div>
-    </div>`).join("");
+    function simulateMiniMove(){
+      markets.forEach(item => {
+        const move = (Math.random() - 0.5) * 0.08;
+        item.value *= 1 + move / 100;
+        item.change += move;
+      });
 
-  document.getElementById("india").innerHTML =
-    `<div class="row head"><div>Index</div><div>Price</div><div>Change</div><div>Status</div></div>` +
-    india.map(x => `<div class="row">
-      <div>${x.label}</div><div>${fmtn(x.value)}</div>
-      <div class="${cls(x.change)}">${sign(x.change)}${Number(x.change).toFixed(2)}%</div>
-      <div class="${cls(x.change)}">${x.change >= 0 ? "UP" : "DOWN"}</div>
-    </div>`).join("");
+      india.forEach(item => {
+        const move = (Math.random() - 0.5) * 0.12;
+        item.value *= 1 + move / 100;
+        item.change += move;
+      });
 
-  document.getElementById("portfolio").innerHTML =
-    `<div class="row head"><div>Stock</div><div>Qty</div><div>Price</div><div>Change</div></div>` +
-    portfolio.map(x => {
-      const priceText = x.price > 0 ? fmtn(x.price) : "—";
-      const changeText = x.change ? `${sign(x.change)}${Number(x.change).toFixed(2)}%` : "—";
-      return `<div class="row">
-        <div>${x.label}</div><div>${x.qty || "—"}</div>
-        <div>${priceText}</div>
-        <div class="${cls(x.change)}">${changeText}</div>
-      </div>`;
-    }).join("");
-}
-
-async function fetchYahooQuotes(symbols){
-  const endpoint = `https://query1.finance.yahoo.com/v6/finance/quote?symbols=${encodeURIComponent(symbols.join(","))}`;
-  const response = await fetch(endpoint, { headers: { Accept: "application/json" } });
-  if (!response.ok) {
-    throw new Error(`Yahoo API error: ${response.status}`);
-  }
-  const json = await response.json();
-  return json?.quoteResponse?.result || [];
-}
-
-function applyQuoteData(quotes){
-  const map = new Map((quotes || []).map(q => [q.symbol, q]));
-
-  markets.forEach(item => {
-    const quote = map.get(item.symbol);
-    if (quote && Number.isFinite(quote.regularMarketPrice)) {
-      item.value = quote.regularMarketPrice;
-      item.change = quote.regularMarketChangePercent ?? item.change;
+      portfolio.forEach(item => {
+        if (item.price > 0) {
+          const move = (Math.random() - 0.5) * 0.8;
+          item.change += move;
+        }
+      });
     }
-  });
 
-  india.forEach(item => {
-    const quote = map.get(item.symbol);
-    if (quote && Number.isFinite(quote.regularMarketPrice)) {
-      item.value = quote.regularMarketPrice;
-      item.change = quote.regularMarketChangePercent ?? item.change;
+    function render(){
+      document.getElementById("cards").innerHTML = markets.map(m => `
+        <div class="card">
+          <div class="name">${m.label}</div>
+          <div class="price">${fmtn(m.value)}</div>
+          <div class="chg ${cls(m.change)}">${sign(m.change)}${Number(m.change).toFixed(2)}%</div>
+        </div>`).join("");
+
+      document.getElementById("india").innerHTML =
+        `<div class="row head"><div>Index</div><div>Price</div><div>Change</div><div>Status</div></div>` +
+        india.map(x => `<div class="row">
+          <div>${x.label}</div><div>${fmtn(x.value)}</div>
+          <div class="${cls(x.change)}">${sign(x.change)}${Number(x.change).toFixed(2)}%</div>
+          <div class="${cls(x.change)}">${x.change >= 0 ? "UP" : "DOWN"}</div>
+        </div>`).join("");
+
+      document.getElementById("portfolio").innerHTML =
+        `<div class="row head"><div>Stock</div><div>Qty</div><div>Price</div><div>Change</div></div>` +
+        portfolio.map(x => {
+          const priceText = x.price > 0 ? fmtn(x.price) : "—";
+          const changeText = x.change ? `${sign(x.change)}${Number(x.change).toFixed(2)}%` : "—";
+          return `<div class="row">
+            <div>${x.label}</div><div>${x.qty || "—"}</div>
+            <div>${priceText}</div>
+            <div class="${cls(x.change)}">${changeText}</div>
+          </div>`;
+        }).join("");
     }
-  });
 
-  portfolio.forEach(item => {
-    const quote = map.get(item.symbol);
-    if (quote && Number.isFinite(quote.regularMarketPrice)) {
-      item.price = quote.regularMarketPrice;
-      const changePct = quote.regularMarketChangePercent ?? 0;
-      item.change = changePct;
+    async function fetchFinnhubQuotes(symbols) {
+      const results = [];
+      const supportedSymbols = symbols.filter(symbol => {
+        if (!symbol) return false;
+        if (symbol.startsWith("^")) return false;
+        if (symbol.includes("=")) return false;
+        return true;
+      });
+
+      for (const symbol of supportedSymbols) {
+        try {
+          const response = await fetch(
+            `https://finnhub.io/api/v1/quote?symbol=${encodeURIComponent(symbol)}&token=${FINNHUB_API_KEY}`
+          );
+
+          if (!response.ok) continue;
+
+          const data = await response.json();
+
+          if (data && Number.isFinite(data.c)) {
+            results.push({
+              symbol,
+              regularMarketPrice: data.c,
+              regularMarketChangePercent: data.dp
+            });
+          }
+        } catch (error) {
+          console.warn(`Finnhub failed for ${symbol}:`, error);
+        }
+      }
+
+      return results;
     }
-  });
-}
 
-async function refreshMarketData(){
-  const symbols = [
-    ...markets.map(m => m.symbol),
-    ...india.map(i => i.symbol),
-    ...portfolio.map(p => p.symbol)
-  ].filter(Boolean);
+    function applyQuoteData(quotes){
+      const map = new Map((quotes || []).map(q => [q.symbol, q]));
 
-  try {
-    const quotes = await fetchYahooQuotes(symbols);
-    applyQuoteData(quotes);
-    liveMode = true;
-    document.getElementById("sourceStatus").textContent = "Live data • Yahoo Finance";
+      markets.forEach(item => {
+        const quote = map.get(item.symbol);
+        if (quote && Number.isFinite(quote.regularMarketPrice)) {
+          item.value = quote.regularMarketPrice;
+          item.change = quote.regularMarketChangePercent ?? item.change;
+        }
+      });
+
+      india.forEach(item => {
+        const quote = map.get(item.symbol);
+        if (quote && Number.isFinite(quote.regularMarketPrice)) {
+          item.value = quote.regularMarketPrice;
+          item.change = quote.regularMarketChangePercent ?? item.change;
+        }
+      });
+
+      portfolio.forEach(item => {
+        const quote = map.get(item.symbol);
+        if (quote && Number.isFinite(quote.regularMarketPrice)) {
+          item.price = quote.regularMarketPrice;
+          const changePct = quote.regularMarketChangePercent ?? 0;
+          item.change = changePct;
+        }
+      });
+    }
+
+    async function refreshMarketData(){
+      const symbols = [
+        ...markets.map(m => m.symbol),
+        ...india.map(i => i.symbol),
+        ...portfolio.map(p => p.symbol)
+      ].filter(Boolean);
+
+      try {
+        const quotes = await fetchFinnhubQuotes(symbols);
+
+        if (!quotes.length) {
+          throw new Error("No live quote data returned");
+        }
+
+        applyQuoteData(quotes);
+        liveMode = true;
+        document.getElementById("sourceStatus").textContent = "Live data • Finnhub";
+        render();
+      } catch (error) {
+        liveMode = false;
+        document.getElementById("sourceStatus").textContent = "Fallback mode • simulated prices";
+        simulateMiniMove();
+        render();
+      }
+    }
+
     render();
-  } catch (error) {
-    liveMode = false;
-    document.getElementById("sourceStatus").textContent = "Fallback mode • simulated prices";
-    simulateMiniMove();
-    render();
-  }
-}
+    refreshMarketData();
 
-render();
-refreshMarketData();
-
-setInterval(() => {
-  timer -= 1;
-  if (timer <= 0) {
-    timer = 10;
-    if (liveMode) {
-      refreshMarketData();
-    } else {
-      simulateMiniMove();
-      render();
-    }
-  }
-  document.getElementById("timer").textContent = timer;
-}, 1000);
-</script>
+    setInterval(() => {
+      timer -= 1;
+      if (timer <= 0) {
+        timer = 10;
+        if (liveMode) {
+          refreshMarketData();
+        } else {
+          simulateMiniMove();
+          render();
+        }
+      }
+      document.getElementById("timer").textContent = timer;
+    }, 1000);
+  </script>
 </body>
 </html>
