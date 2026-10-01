@@ -155,15 +155,22 @@
         return true;
       });
 
+      console.log("Fetching symbols:", supportedSymbols);
+
       for (const symbol of supportedSymbols) {
         try {
-          const response = await fetch(
-            `https://finnhub.io/api/v1/quote?symbol=${encodeURIComponent(symbol)}&token=${FINNHUB_API_KEY}`
-          );
+          const url = `https://finnhub.io/api/v1/quote?symbol=${encodeURIComponent(symbol)}&token=${FINNHUB_API_KEY}`;
+          console.log("Fetching:", url);
+          
+          const response = await fetch(url);
 
-          if (!response.ok) continue;
+          if (!response.ok) {
+            console.warn(`HTTP ${response.status} for ${symbol}`);
+            continue;
+          }
 
           const data = await response.json();
+          console.log(`Response for ${symbol}:`, data);
 
           if (data && Number.isFinite(data.c)) {
             results.push({
@@ -173,10 +180,11 @@
             });
           }
         } catch (error) {
-          console.warn(`Finnhub failed for ${symbol}:`, error);
+          console.warn(`Finnhub fetch failed for ${symbol}:`, error);
         }
       }
 
+      console.log("Total results:", results.length);
       return results;
     }
 
@@ -219,15 +227,19 @@
       try {
         const quotes = await fetchFinnhubQuotes(symbols);
 
-        if (!quotes.length) {
-          throw new Error("No live quote data returned");
+        if (quotes.length > 0) {
+          applyQuoteData(quotes);
+          liveMode = true;
+          document.getElementById("sourceStatus").textContent = `Live data • Finnhub (${quotes.length} symbols)`;
+        } else {
+          liveMode = false;
+          document.getElementById("sourceStatus").textContent = "Fallback mode • simulated prices";
+          simulateMiniMove();
         }
-
-        applyQuoteData(quotes);
-        liveMode = true;
-        document.getElementById("sourceStatus").textContent = "Live data • Finnhub";
+        
         render();
       } catch (error) {
+        console.error("Market data refresh error:", error);
         liveMode = false;
         document.getElementById("sourceStatus").textContent = "Fallback mode • simulated prices";
         simulateMiniMove();
