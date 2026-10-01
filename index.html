@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Live Market Dashboard</title>
+<title>My Market Dashboard</title>
 <style>
   *{box-sizing:border-box}
   body{margin:0;font-family:Arial,Helvetica,sans-serif;background:#0b1220;color:#e8eef8}
@@ -24,8 +24,6 @@
   .head{font-size:12px;color:#8192aa;background:#0f1828}
   .small{font-size:12px;color:#8192aa}
   .note{margin-top:18px;color:#8192aa;font-size:12px;line-height:1.5}
-  .loading{color:#9fb0c8;font-style:italic}
-  .error{color:#ff6b7a}
   @media(max-width:800px){.grid{grid-template-columns:repeat(2,1fr)}}
   @media(max-width:500px){
     .wrap{padding:12px}.grid{grid-template-columns:1fr 1fr;gap:8px}
@@ -39,118 +37,67 @@
 <div class="wrap">
   <header>
     <div>
-      <h1>📊 Live Market Dashboard</h1>
-      <div class="status">Real-time data • Last updated: <span id="lastUpdate">--:--</span></div>
+      <h1>📊 My Market Dashboard</h1>
+      <div class="status">Prototype • prices currently simulated</div>
     </div>
-    <div class="status">Auto refresh: <span id="timer">30</span>s</div>
+    <div class="status">Auto refresh: <span id="timer">10</span>s</div>
   </header>
 
-  <div class="grid" id="cards">
-    <div class="card"><div class="loading">Loading market data...</div></div>
-  </div>
+  <div class="grid" id="cards"></div>
 
   <div class="section">🇮🇳 Indian Markets</div>
-  <div class="table" id="india">
-    <div class="row"><div class="loading">Loading Indian market data...</div></div>
-  </div>
+  <div class="table" id="india"></div>
 
-  <div class="section">💱 Forex Rates</div>
-  <div class="table" id="forex">
-    <div class="row"><div class="loading">Loading forex data...</div></div>
-  </div>
+  <div class="section">📈 My Watchlist / Portfolio</div>
+  <div class="table" id="portfolio"></div>
 
   <div class="note">
-    This dashboard displays live market data from multiple APIs including cryptocurrencies, forex, and stock indices.
-    Data is updated every 30 seconds. API sources: CoinGecko (free tier), ExchangeRate-API, and Alpha Vantage.
+    This is the first frontend prototype. The numbers are placeholders so the page can be tested safely.
+    The next step is connecting a legitimate market-data API for real-time or delayed prices.
   </div>
 </div>
 
 <script>
-// Format number to Indian format
+const markets = [
+  ["Dow Futures", 46850, 0.32],
+  ["Nasdaq Futures", 24780, 0.48],
+  ["DAX", 24180, 0.51],
+  ["US 10Y Yield", 4.12, -0.03],
+  ["Gold", 3860, 0.45],
+  ["Brent Crude", 67.20, -0.28],
+  ["DXY", 98.40, 0.11],
+  ["Copper", 4.72, 0.36]
+];
+
+const india = [
+  ["NIFTY 50", 26000, 0.40],
+  ["BANK NIFTY", 59000, 0.65],
+  ["SENSEX", 85000, 0.32],
+  ["INDIA VIX", 13.8, -1.20]
+];
+
+const portfolio = [
+  ["Gujarat Energy", 3200, 0, 0],
+  ["Man Infra", 0, 0, 0],
+  ["Likhita", 0, 0, 0],
+  ["Jindal Drilling", 0, 0, 0]
+];
+
 function fmt(n){
   if(n < 10) return n.toFixed(2);
   return n.toLocaleString("en-IN",{maximumFractionDigits:2});
 }
-
-// Return CSS class based on change
 function cls(x){return x>=0 ? "up" : "down";}
-
-// Add + sign for positive numbers
 function sign(x){return x>=0 ? "+" : "";}
 
-// Update timestamp
-function updateTimestamp(){
-  const now = new Date();
-  document.getElementById("lastUpdate").textContent = now.toLocaleTimeString();
-}
-
-// Fetch crypto data from CoinGecko (free API)
-async function fetchCryptoData(){
-  try {
-    const response = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,cardano&vs_currencies=usd&include_24hr_change=true');
-    const data = await response.json();
-    
-    return [
-      ["Bitcoin", data.bitcoin.usd, data.bitcoin.usd_24h_change],
-      ["Ethereum", data.ethereum.usd, data.ethereum.usd_24h_change],
-      ["Cardano", data.cardano.usd, data.cardano.usd_24h_change]
-    ];
-  } catch(e) {
-    console.error("Crypto API Error:", e);
-    return [
-      ["Bitcoin", 0, 0],
-      ["Ethereum", 0, 0],
-      ["Cardano", 0, 0]
-    ];
-  }
-}
-
-// Fetch forex data from ExchangeRate-API
-async function fetchForexData(){
-  try {
-    const response = await fetch('https://api.exchangerate-api.com/v4/latest/USD');
-    const data = await response.json();
-    
-    return [
-      ["USD to INR", data.rates.INR, 0],
-      ["USD to EUR", data.rates.EUR, 0],
-      ["USD to GBP", data.rates.GBP, 0],
-      ["USD to JPY", data.rates.JPY, 0]
-    ];
-  } catch(e) {
-    console.error("Forex API Error:", e);
-    return [
-      ["USD to INR", 0, 0],
-      ["USD to EUR", 0, 0],
-      ["USD to GBP", 0, 0],
-      ["USD to JPY", 0, 0]
-    ];
-  }
-}
-
-// Fetch stock indices (using Alpha Vantage - requires free API key from alphavantage.co)
-async function fetchStockIndices(){
-  // Using demo data - replace with real API if you have Alpha Vantage key
-  return [
-    ["NIFTY 50", 26000, 0.40],
-    ["BANK NIFTY", 59000, 0.65],
-    ["SENSEX", 85000, 0.32],
-    ["INDIA VIX", 13.8, -1.20]
-  ];
-}
-
-// Render market cards
-function renderCards(markets){
+function render(){
   document.getElementById("cards").innerHTML = markets.map(m => `
     <div class="card">
       <div class="name">${m[0]}</div>
       <div class="price">${fmt(m[1])}</div>
-      <div class="chg ${cls(m[2])}">${sign(m[2])}${m[2].toFixed(2)}${typeof m[1] === 'number' && m[1] < 100 ? '%' : ''}</div>
+      <div class="chg ${cls(m[2])}">${sign(m[2])}${m[2].toFixed(2)}%</div>
     </div>`).join("");
-}
 
-// Render India table
-function renderIndia(india){
   document.getElementById("india").innerHTML =
     `<div class="row head"><div>Index</div><div>Price</div><div>Change</div><div>Status</div></div>` +
     india.map(x=>`<div class="row">
@@ -158,45 +105,32 @@ function renderIndia(india){
       <div class="${cls(x[2])}">${sign(x[2])}${x[2].toFixed(2)}%</div>
       <div class="${cls(x[2])}">${x[2]>=0?"UP":"DOWN"}</div>
     </div>`).join("");
-}
 
-// Render Forex table
-function renderForex(forex){
-  document.getElementById("forex").innerHTML =
-    `<div class="row head"><div>Currency Pair</div><div>Rate</div><div>Change</div><div>Status</div></div>` +
-    forex.map(x=>`<div class="row">
-      <div>${x[0]}</div><div>${fmt(x[1])}</div>
-      <div class="${cls(x[2])}">${sign(x[2])}${x[2].toFixed(2)}</div>
-      <div class="${cls(x[2])}">${x[2]>=0?"UP":"DOWN"}</div>
+  document.getElementById("portfolio").innerHTML =
+    `<div class="row head"><div>Stock</div><div>Qty</div><div>Price</div><div>Change</div></div>` +
+    portfolio.map(x=>`<div class="row">
+      <div>${x[0]}</div><div>${x[1] || "—"}</div>
+      <div>${x[2] ? fmt(x[2]) : "—"}</div>
+      <div class="${cls(x[3])}">${x[3] ? sign(x[3])+x[3].toFixed(2)+"%" : "—"}</div>
     </div>`).join("");
 }
-
-// Main render function
-async function render(){
-  updateTimestamp();
-  
-  const crypto = await fetchCryptoData();
-  const indices = await fetchStockIndices();
-  const forex = await fetchForexData();
-  
-  renderCards(crypto);
-  renderIndia(indices);
-  renderForex(forex);
-}
-
-// Initial render
 render();
 
-// Auto-refresh every 30 seconds
-let t = 30;
-setInterval(() => {
+let t=10;
+setInterval(()=>{
   t--;
-  if(t <= 0) {
-    t = 30;
+  if(t<=0){
+    t=10;
+    // Simulate tiny movement for prototype demonstration only.
+    markets.forEach(m=>{
+      const move=(Math.random()-0.5)*0.08;
+      m[1]=m[1]*(1+move/100);
+      m[2]=m[2]+move;
+    });
     render();
   }
-  document.getElementById("timer").textContent = t;
-}, 1000);
+  document.getElementById("timer").textContent=t;
+},1000);
 </script>
 </body>
 </html>
