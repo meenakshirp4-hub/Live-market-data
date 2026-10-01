@@ -38,7 +38,7 @@
   <header>
     <div>
       <h1>📊 My Market Dashboard</h1>
-      <div class="status">Prototype • prices currently simulated</div>
+      <div class="status" id="sourceStatus">Live data • connecting…</div>
     </div>
     <div class="status">Auto refresh: <span id="timer">10</span>s</div>
   </header>
@@ -52,85 +52,174 @@
   <div class="table" id="portfolio"></div>
 
   <div class="note">
-    This is the first frontend prototype. The numbers are placeholders so the page can be tested safely.
-    The next step is connecting a legitimate market-data API for real-time or delayed prices.
+    This dashboard uses public market quote endpoints when available and falls back to simulated values if a feed is unavailable.
+    For production, replace the demo data source with a licensed market-data API and add secure backend proxying for live streams.
   </div>
 </div>
 
 <script>
 const markets = [
-  ["Dow Futures", 46850, 0.32],
-  ["Nasdaq Futures", 24780, 0.48],
-  ["DAX", 24180, 0.51],
-  ["US 10Y Yield", 4.12, -0.03],
-  ["Gold", 3860, 0.45],
-  ["Brent Crude", 67.20, -0.28],
-  ["DXY", 98.40, 0.11],
-  ["Copper", 4.72, 0.36]
+  { label: "Dow Futures", symbol: "^DJI", value: 46850, change: 0.32 },
+  { label: "Nasdaq Futures", symbol: "^IXIC", value: 24780, change: 0.48 },
+  { label: "DAX", symbol: "^GDAXI", value: 24180, change: 0.51 },
+  { label: "US 10Y Yield", symbol: "^TNX", value: 4.12, change: -0.03 },
+  { label: "Gold", symbol: "GC=F", value: 3860, change: 0.45 },
+  { label: "Brent Crude", symbol: "BZ=F", value: 67.20, change: -0.28 },
+  { label: "DXY", symbol: "DX=F", value: 98.40, change: 0.11 },
+  { label: "Copper", symbol: "HG=F", value: 4.72, change: 0.36 }
 ];
 
 const india = [
-  ["NIFTY 50", 26000, 0.40],
-  ["BANK NIFTY", 59000, 0.65],
-  ["SENSEX", 85000, 0.32],
-  ["INDIA VIX", 13.8, -1.20]
+  { label: "NIFTY 50", symbol: "^NSEI", value: 26000, change: 0.40 },
+  { label: "BANK NIFTY", symbol: "^NSEBANK", value: 59000, change: 0.65 },
+  { label: "SENSEX", symbol: "^BSESN", value: 85000, change: 0.32 },
+  { label: "INDIA VIX", symbol: "^VIX", value: 13.8, change: -1.20 }
 ];
 
 const portfolio = [
-  ["Gujarat Energy", 3200, 0, 0],
-  ["Man Infra", 0, 0, 0],
-  ["Likhita", 0, 0, 0],
-  ["Jindal Drilling", 0, 0, 0]
+  { label: "Reliance", symbol: "RELIANCE.NS", qty: 15, avg: 2850, price: 0, change: 0 },
+  { label: "TCS", symbol: "TCS.NS", qty: 12, avg: 4100, price: 0, change: 0 },
+  { label: "HDFCBANK", symbol: "HDFCBANK.NS", qty: 20, avg: 1650, price: 0, change: 0 },
+  { label: "INFY", symbol: "INFY.NS", qty: 18, avg: 1540, price: 0, change: 0 }
 ];
 
-function fmt(n){
-  if(n < 10) return n.toFixed(2);
-  return n.toLocaleString("en-IN",{maximumFractionDigits:2});
+let liveMode = false;
+let timer = 10;
+
+function fmtn(n){
+  if (n === null || n === undefined || Number.isNaN(n)) return "—";
+  if (n < 10) return Number(n).toFixed(2);
+  return Number(n).toLocaleString("en-IN", { maximumFractionDigits: 2 });
 }
-function cls(x){return x>=0 ? "up" : "down";}
-function sign(x){return x>=0 ? "+" : "";}
+function cls(x){ return x >= 0 ? "up" : "down"; }
+function sign(x){ return x >= 0 ? "+" : ""; }
+
+function simulateMiniMove(){
+  markets.forEach(item => {
+    const move = (Math.random() - 0.5) * 0.08;
+    item.value *= 1 + move / 100;
+    item.change += move;
+  });
+
+  india.forEach(item => {
+    const move = (Math.random() - 0.5) * 0.12;
+    item.value *= 1 + move / 100;
+    item.change += move;
+  });
+
+  portfolio.forEach(item => {
+    if (item.price > 0) {
+      const move = (Math.random() - 0.5) * 0.8;
+      item.change += move;
+    }
+  });
+}
 
 function render(){
   document.getElementById("cards").innerHTML = markets.map(m => `
     <div class="card">
-      <div class="name">${m[0]}</div>
-      <div class="price">${fmt(m[1])}</div>
-      <div class="chg ${cls(m[2])}">${sign(m[2])}${m[2].toFixed(2)}%</div>
+      <div class="name">${m.label}</div>
+      <div class="price">${fmtn(m.value)}</div>
+      <div class="chg ${cls(m.change)}">${sign(m.change)}${Number(m.change).toFixed(2)}%</div>
     </div>`).join("");
 
   document.getElementById("india").innerHTML =
     `<div class="row head"><div>Index</div><div>Price</div><div>Change</div><div>Status</div></div>` +
-    india.map(x=>`<div class="row">
-      <div>${x[0]}</div><div>${fmt(x[1])}</div>
-      <div class="${cls(x[2])}">${sign(x[2])}${x[2].toFixed(2)}%</div>
-      <div class="${cls(x[2])}">${x[2]>=0?"UP":"DOWN"}</div>
+    india.map(x => `<div class="row">
+      <div>${x.label}</div><div>${fmtn(x.value)}</div>
+      <div class="${cls(x.change)}">${sign(x.change)}${Number(x.change).toFixed(2)}%</div>
+      <div class="${cls(x.change)}">${x.change >= 0 ? "UP" : "DOWN"}</div>
     </div>`).join("");
 
   document.getElementById("portfolio").innerHTML =
     `<div class="row head"><div>Stock</div><div>Qty</div><div>Price</div><div>Change</div></div>` +
-    portfolio.map(x=>`<div class="row">
-      <div>${x[0]}</div><div>${x[1] || "—"}</div>
-      <div>${x[2] ? fmt(x[2]) : "—"}</div>
-      <div class="${cls(x[3])}">${x[3] ? sign(x[3])+x[3].toFixed(2)+"%" : "—"}</div>
-    </div>`).join("");
+    portfolio.map(x => {
+      const priceText = x.price > 0 ? fmtn(x.price) : "—";
+      const changeText = x.change ? `${sign(x.change)}${Number(x.change).toFixed(2)}%` : "—";
+      return `<div class="row">
+        <div>${x.label}</div><div>${x.qty || "—"}</div>
+        <div>${priceText}</div>
+        <div class="${cls(x.change)}">${changeText}</div>
+      </div>`;
+    }).join("");
 }
-render();
 
-let t=10;
-setInterval(()=>{
-  t--;
-  if(t<=0){
-    t=10;
-    // Simulate tiny movement for prototype demonstration only.
-    markets.forEach(m=>{
-      const move=(Math.random()-0.5)*0.08;
-      m[1]=m[1]*(1+move/100);
-      m[2]=m[2]+move;
-    });
+async function fetchYahooQuotes(symbols){
+  const endpoint = `https://query1.finance.yahoo.com/v6/finance/quote?symbols=${encodeURIComponent(symbols.join(","))}`;
+  const response = await fetch(endpoint, { headers: { Accept: "application/json" } });
+  if (!response.ok) {
+    throw new Error(`Yahoo API error: ${response.status}`);
+  }
+  const json = await response.json();
+  return json?.quoteResponse?.result || [];
+}
+
+function applyQuoteData(quotes){
+  const map = new Map((quotes || []).map(q => [q.symbol, q]));
+
+  markets.forEach(item => {
+    const quote = map.get(item.symbol);
+    if (quote && Number.isFinite(quote.regularMarketPrice)) {
+      item.value = quote.regularMarketPrice;
+      item.change = quote.regularMarketChangePercent ?? item.change;
+    }
+  });
+
+  india.forEach(item => {
+    const quote = map.get(item.symbol);
+    if (quote && Number.isFinite(quote.regularMarketPrice)) {
+      item.value = quote.regularMarketPrice;
+      item.change = quote.regularMarketChangePercent ?? item.change;
+    }
+  });
+
+  portfolio.forEach(item => {
+    const quote = map.get(item.symbol);
+    if (quote && Number.isFinite(quote.regularMarketPrice)) {
+      item.price = quote.regularMarketPrice;
+      const changePct = quote.regularMarketChangePercent ?? 0;
+      item.change = changePct;
+    }
+  });
+}
+
+async function refreshMarketData(){
+  const symbols = [
+    ...markets.map(m => m.symbol),
+    ...india.map(i => i.symbol),
+    ...portfolio.map(p => p.symbol)
+  ].filter(Boolean);
+
+  try {
+    const quotes = await fetchYahooQuotes(symbols);
+    applyQuoteData(quotes);
+    liveMode = true;
+    document.getElementById("sourceStatus").textContent = "Live data • Yahoo Finance";
+    render();
+  } catch (error) {
+    liveMode = false;
+    document.getElementById("sourceStatus").textContent = "Fallback mode • simulated prices";
+    simulateMiniMove();
     render();
   }
-  document.getElementById("timer").textContent=t;
-},1000);
+}
+
+render();
+refreshMarketData();
+
+setInterval(() => {
+  timer -= 1;
+  if (timer <= 0) {
+    timer = 10;
+    if (liveMode) {
+      refreshMarketData();
+    } else {
+      simulateMiniMove();
+      render();
+    }
+  }
+  document.getElementById("timer").textContent = timer;
+}, 1000);
 </script>
 </body>
 </html>
